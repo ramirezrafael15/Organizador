@@ -404,6 +404,7 @@
       <span>Activar recordatorio</span>
       <button class="switch" id="reminderToggle" aria-label="Activar recordatorio"></button>
     </div>
+    <button class="icon-btn" id="testSoundBtn" style="width:100%; margin-top:14px; height:44px; font-size:13px;">Probar sonido ahora</button>
     <button class="modal-close-btn" id="closeSettingsBtn">Guardar</button>
   </div>
 </div>
@@ -671,6 +672,10 @@ reminderTimeInput.addEventListener('change', ()=>{
   meta.reminderTime = reminderTimeInput.value;
   saveMeta();
 });
+document.getElementById('testSoundBtn').addEventListener('click', ()=>{
+  unlockAudio();
+  playBeep('media');
+});
 
 function checkReminder(){
   if(!meta.reminderOn || !('Notification' in window) || Notification.permission !== 'granted') return;
@@ -715,26 +720,32 @@ function unlockAudio(){
   document.addEventListener(ev, unlockAudio, { once: true });
 });
 
-function playBeep(){
+function playBeep(prio){
+  const cfg = {
+    alta:  { freq: 1046, vol: 0.35, beeps: 4, gap: 0.28, vibrate: [200,80,200,80,200,80,400] },
+    media: { freq: 880,  vol: 0.3,  beeps: 3, gap: 0.35, vibrate: [250,120,250,120,250] },
+    baja:  { freq: 660,  vol: 0.18, beeps: 2, gap: 0.45, vibrate: [180,150,180] }
+  };
+  const c = cfg[prio] || cfg.media;
   try{
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    const times = [0, 0.35, 0.7];
-    times.forEach(t => {
+    for(let i=0; i<c.beeps; i++){
+      const t = i * c.gap;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.value = 880;
+      osc.frequency.value = c.freq;
       gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t + 0.28);
+      gain.gain.exponentialRampToValueAtTime(c.vol, audioCtx.currentTime + t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t + c.gap - 0.05);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(audioCtx.currentTime + t);
-      osc.stop(audioCtx.currentTime + t + 0.3);
-    });
+      osc.stop(audioCtx.currentTime + t + c.gap);
+    }
   }catch(e){}
-  if(navigator.vibrate) navigator.vibrate([250,120,250,120,250]);
+  if(navigator.vibrate) navigator.vibrate(c.vibrate);
 }
 
 const alarmOverlay = document.getElementById('alarmOverlay');
@@ -783,7 +794,7 @@ function checkAlarms(){
   });
   if(toFire){
     saveTasks();
-    playBeep();
+    playBeep(toFire.prio);
     if('Notification' in window && Notification.permission === 'granted'){
       try{ new Notification('Tarea pendiente', { body: toFire.text, icon: 'icon-192.png' }); }catch(e){}
     }
