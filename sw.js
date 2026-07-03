@@ -1,34 +1,820 @@
-const CACHE_NAME = 'tareas-v7';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Mis Tareas</title>
+<meta name="description" content="Organizador de tareas diarias" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f1210" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Tareas" />
+<style>
+  :root{
+    --bg: #0f1210;
+    --surface: #171b19;
+    --surface-2: #1f2422;
+    --border: #2a302d;
+    --text: #f2f3f1;
+    --text-secondary: #9aa39d;
+    --text-muted: #6b736e;
+    --accent: #1D9E75;
+    --accent-light: #9FE1CB;
+    --danger: #D85A30;
+    --amber: #EF9F27;
+    --gray: #5F5E5A;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  body {
+    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16px);
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 4px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 5;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
+  .icon-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .icon-btn svg { width: 20px; height: 20px; }
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
-  self.skipWaiting();
+  .streak {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--amber);
+    width: fit-content;
+    margin-bottom: 14px;
+  }
+  .streak svg { width: 16px; height: 16px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .stat-num { font-size: 22px; font-weight: 600; margin: 0; }
+  .stat-label { font-size: 11px; color: var(--text-secondary); margin: 2px 0 0; }
+
+  .add-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .add-box input[type="text"] {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 16px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .add-box input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  .row { display: flex; gap: 8px; }
+  .row + .row { margin-top: 8px; }
+  select, .row input[type="time"] {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px 8px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  button {
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+  }
+  .add-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #06231a;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+  .add-btn:active { opacity: 0.85; }
+
+  .filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: 999px;
+  }
+  .filter-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #06231a;
+    font-weight: 600;
+  }
+
+  .task {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .task.done { opacity: 0.45; }
+  .checkbox {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--gray);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    background: transparent;
+  }
+  .checkbox.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .checkbox svg { width: 14px; height: 14px; }
+  .task-body { flex: 1; min-width: 0; }
+  .task-text {
+    font-size: 15px;
+    line-height: 1.3;
+    word-break: break-word;
+    display: block;
+  }
+  .task.done .task-text { text-decoration: line-through; }
+  .repeat-hint {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .repeat-hint svg { width: 11px; height: 11px; }
+  .tags { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .cat-Estudios { background: #0C447C33; color: #85B7EB; }
+  .cat-Vilosu { background: #D85A3033; color: #F0997B; }
+  .cat-Cliente { background: #99355633; color: #ED93B1; }
+  .cat-Personal { background: #0F6E5633; color: #5DCAA5; }
+  .prio-alta { background: #A32D2D33; color: #F09595; }
+  .prio-media { background: #85510B33; color: #FAC775; }
+  .prio-baja { background: #44444133; color: #B4B2A9; }
+
+  .del-btn {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 6px;
+    flex-shrink: 0;
+  }
+  .del-btn svg { width: 18px; height: 18px; }
+
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 20px 0 8px;
+  }
+
+  #installBanner {
+    display: none;
+    background: var(--surface-2);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  #installBanner button {
+    background: var(--accent);
+    color: #06231a;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 20;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    background: var(--surface);
+    border-radius: 18px 18px 0 0;
+    padding: 20px;
+    width: 100%;
+    max-width: 480px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
+  }
+  .modal-sheet h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+  .modal-sheet p.hint { font-size: 12px; color: var(--text-muted); margin: 0 0 16px; line-height:1.5; }
+  .modal-sheet label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
+  .modal-sheet input[type="time"] {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 16px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+  }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+    border-top: 0.5px solid var(--border);
+  }
+  .toggle-row span { font-size: 14px; }
+  .switch {
+    width: 44px; height: 26px;
+    background: var(--gray);
+    border-radius: 999px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .switch.on { background: var(--accent); }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 22px; height: 22px;
+    background: white;
+    border-radius: 50%;
+    transition: left 0.15s;
+  }
+  .switch.on::after { left: 20px; }
+  .modal-close-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #06231a;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Mis tareas</h1>
+    <p class="subtitle" id="todayLabel"></p>
+  </div>
+  <button class="icon-btn" id="settingsBtn" aria-label="Recordatorios">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+  </button>
+</header>
+
+<div id="installBanner">
+  Instala esta app en tu pantalla de inicio para acceder rápido.
+  <div><button id="installBtn">Instalar</button></div>
+</div>
+
+<div class="streak" id="streakBox" style="display:none;">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-1 4-2 6-1.5 3 0 5 2 5s3.5-2 2-5c2 1 3 3 3 5a5 5 0 0 1-10 0c0-4 3-6 5-11z"></path></svg>
+  <span id="streakText">0 días seguidos</span>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="add-box">
+  <input id="taskInput" type="text" placeholder="¿Qué tienes que hacer?" maxlength="120" />
+  <div class="row">
+    <select id="catInput">
+      <option value="Estudios">Estudios</option>
+      <option value="Vilosu">Vilosu</option>
+      <option value="Cliente">Cliente</option>
+      <option value="Personal">Personal</option>
+    </select>
+    <select id="prioInput">
+      <option value="alta">Alta</option>
+      <option value="media" selected>Media</option>
+      <option value="baja">Baja</option>
+    </select>
+  </div>
+  <div class="row">
+    <select id="repeatInput">
+      <option value="none">No se repite</option>
+      <option value="daily">Cada día</option>
+      <option value="weekly">Cada semana</option>
+    </select>
+    <input type="time" id="alarmInput" style="flex:1;" />
+  </div>
+  <p style="font-size:11px; color:var(--text-muted); margin:6px 2px 0;">Pon una hora. Repetirá según la prioridad: alta cada 1 min, media cada 5, baja cada 10 — hasta que la marques hecha (con la app abierta)</p>
+  <button class="add-btn" id="addBtn">+ Añadir tarea</button>
+</div>
+
+<div class="filters" id="filters"></div>
+
+<div id="listWrap"></div>
+
+<footer>Tus tareas se guardan solas en este dispositivo</footer>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-sheet">
+    <h2>Recordatorio diario</h2>
+    <p class="hint">Te avisa a esta hora si tienes tareas pendientes. Solo funciona si el navegador tiene permiso y la app se ha abierto ese día — en iPhone es más limitado que en Android.</p>
+    <label for="reminderTime">Hora del aviso</label>
+    <input type="time" id="reminderTime" value="09:00" />
+    <div class="toggle-row">
+      <span>Activar recordatorio</span>
+      <button class="switch" id="reminderToggle" aria-label="Activar recordatorio"></button>
+    </div>
+    <button class="icon-btn" id="testSoundBtn" style="width:100%; margin-top:14px; height:44px; font-size:13px;">Probar sonido ahora</button>
+    <button class="modal-close-btn" id="closeSettingsBtn">Guardar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="alarmOverlay">
+  <div class="modal-sheet" style="text-align:center;">
+    <div style="width:56px; height:56px; border-radius:50%; background:var(--bg-danger, #A32D2D33); display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:28px; height:28px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+    </div>
+    <h2 id="alarmTaskText">Tarea pendiente</h2>
+    <p class="hint" id="alarmTaskTime">Sonará hasta que la marques hecha</p>
+    <button class="modal-close-btn" id="alarmDoneBtn">Ya está hecho</button>
+    <button class="icon-btn" id="alarmSnoozeBtn" style="width:100%; margin-top:10px; height:44px; font-size:13px; color:var(--text-secondary);">Silenciar 10 min</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'mis-tareas-v1';
+const META_KEY = 'mis-tareas-meta-v1';
+let tasks = [];
+let meta = { streak: 0, lastCompletedDate: null, reminderTime: '09:00', reminderOn: false, lastReminderShown: null };
+let activeFilter = 'todas';
+const CATS = ['Estudios','Vilosu','Cliente','Personal'];
+const PRIO_LABEL = { alta:'Alta', media:'Media', baja:'Baja' };
+const PRIO_ORDER = { alta:0, media:1, baja:2 };
+const REPEAT_LABEL = { daily: 'Cada día', weekly: 'Cada semana' };
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ const d = new Date(); return d.toISOString().slice(0,10); }
+function daysBetween(a, b){
+  const d1 = new Date(a); const d2 = new Date(b);
+  return Math.round((d2 - d1) / 86400000);
+}
+
+function loadData(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    tasks = raw ? JSON.parse(raw) : [];
+  } catch(e) { tasks = []; }
+  try {
+    const rawMeta = localStorage.getItem(META_KEY);
+    if(rawMeta) meta = Object.assign(meta, JSON.parse(rawMeta));
+  } catch(e) {}
+}
+
+function saveTasks(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+  catch(e) { console.error('No se pudo guardar', e); }
+}
+function saveMeta(){
+  try { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+  catch(e) {}
+}
+
+function resetRecurringTasks(){
+  const today = todayStr();
+  let changed = false;
+  tasks.forEach(t => {
+    if(t.repeat && t.repeat !== 'none' && t.done){
+      const last = t.lastDoneDate;
+      if(!last) return;
+      if(t.repeat === 'daily' && last !== today){
+        t.done = false; changed = true;
+      } else if(t.repeat === 'weekly' && daysBetween(last, today) >= 7){
+        t.done = false; changed = true;
+      }
+    }
+  });
+  if(changed) saveTasks();
+}
+
+function updateStreak(){
+  const today = todayStr();
+  if(meta.lastCompletedDate === today) return;
+  if(meta.lastCompletedDate && daysBetween(meta.lastCompletedDate, today) === 1){
+    meta.streak += 1;
+  } else {
+    meta.streak = 1;
+  }
+  meta.lastCompletedDate = today;
+  saveMeta();
+}
+
+function addTask(){
+  const input = document.getElementById('taskInput');
+  const cat = document.getElementById('catInput').value;
+  const prio = document.getElementById('prioInput').value;
+  const repeat = document.getElementById('repeatInput').value;
+  const alarmInputEl = document.getElementById('alarmInput');
+  const alarmTime = alarmInputEl.value || null;
+  const text = input.value.trim();
+  if(!text) return;
+  tasks.unshift({ id: uid(), text, cat, prio, repeat, alarmTime, done:false, created: Date.now(), lastDoneDate: null, lastAlarmAt: null, suppressUntil: null });
+  input.value = '';
+  alarmInputEl.value = '';
+  saveTasks();
+  render();
+}
+
+function toggleTask(id){
+  const t = tasks.find(x=>x.id===id);
+  if(!t) return;
+  t.done = !t.done;
+  if(t.done){
+    t.lastDoneDate = todayStr();
+    updateStreak();
+  }
+  saveTasks();
+  render();
+}
+
+function deleteTask(id){
+  tasks = tasks.filter(x=>x.id!==id);
+  saveTasks();
+  render();
+}
+
+function setFilter(f){ activeFilter = f; render(); }
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderFilters(){
+  const el = document.getElementById('filters');
+  const opts = ['todas', ...CATS];
+  el.innerHTML = opts.map(o => {
+    const active = o === activeFilter ? 'active' : '';
+    const label = o === 'todas' ? 'Todas' : o;
+    return `<button class="filter-chip ${active}" data-filter="${o}">${label}</button>`;
+  }).join('');
+  el.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=> setFilter(b.dataset.filter));
+  });
+}
+
+function renderStreak(){
+  const box = document.getElementById('streakBox');
+  if(meta.streak > 0){
+    box.style.display = 'flex';
+    document.getElementById('streakText').textContent =
+      `${meta.streak} día${meta.streak === 1 ? '' : 's'} seguido${meta.streak === 1 ? '' : 's'}`;
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+function renderStats(){
+  const el = document.getElementById('stats');
+  const pending = tasks.filter(t=>!t.done).length;
+  const done = tasks.filter(t=>t.done).length;
+  const alta = tasks.filter(t=>!t.done && t.prio==='alta').length;
+  const cards = [
+    { label:'Pendientes', value: pending },
+    { label:'Hechas', value: done },
+    { label:'Prioridad alta', value: alta },
+  ];
+  el.innerHTML = cards.map(c => `
+    <div class="stat-card">
+      <p class="stat-num">${c.value}</p>
+      <p class="stat-label">${c.label}</p>
+    </div>
+  `).join('');
+}
+
+function renderList(){
+  const el = document.getElementById('listWrap');
+  let visible = tasks;
+  if(activeFilter !== 'todas') visible = tasks.filter(t=>t.cat===activeFilter);
+  visible = [...visible].sort((a,b)=>{
+    if(a.done !== b.done) return a.done ? 1 : -1;
+    return PRIO_ORDER[a.prio] - PRIO_ORDER[b.prio];
+  });
+
+  if(visible.length === 0){
+    el.innerHTML = `<div class="empty">No hay tareas aquí.<br>Añade una arriba ↑</div>`;
+    return;
+  }
+
+  el.innerHTML = visible.map(t => `
+    <div class="task ${t.done ? 'done' : ''}">
+      <button class="checkbox ${t.done ? 'checked' : ''}" data-toggle="${t.id}" aria-label="Marcar completada">
+        ${t.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="#06231a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+      </button>
+      <div class="task-body">
+        <span class="task-text">${escapeHtml(t.text)}</span>
+        ${(t.repeat && t.repeat !== 'none') || t.alarmTime ? `<span class="repeat-hint">
+          ${t.repeat && t.repeat !== 'none' ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>${REPEAT_LABEL[t.repeat]}` : ''}
+          ${t.alarmTime ? `<svg style="margin-left:${t.repeat && t.repeat!=='none' ? '8px':'0'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${t.alarmTime}` : ''}
+        </span>` : ''}
+      </div>
+      <div class="tags">
+        <span class="tag cat-${t.cat}">${t.cat}</span>
+        <span class="tag prio-${t.prio}">${PRIO_LABEL[t.prio]}</span>
+      </div>
+      <button class="del-btn" data-delete="${t.id}" aria-label="Eliminar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('[data-toggle]').forEach(b=>{
+    b.addEventListener('click', ()=> toggleTask(b.dataset.toggle));
+  });
+  el.querySelectorAll('[data-delete]').forEach(b=>{
+    b.addEventListener('click', ()=> deleteTask(b.dataset.delete));
+  });
+}
+
+function render(){
+  renderFilters();
+  renderStreak();
+  renderStats();
+  renderList();
+}
+
+document.getElementById('addBtn').addEventListener('click', addTask);
+document.getElementById('taskInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') addTask();
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const today = new Date();
+document.getElementById('todayLabel').textContent =
+  `${dias[today.getDay()]}, ${today.getDate()} de ${meses[today.getMonth()]}`;
+
+loadData();
+resetRecurringTasks();
+render();
+
+// Settings modal
+const settingsModal = document.getElementById('settingsModal');
+const reminderToggle = document.getElementById('reminderToggle');
+const reminderTimeInput = document.getElementById('reminderTime');
+
+function refreshSettingsUI(){
+  reminderTimeInput.value = meta.reminderTime || '09:00';
+  reminderToggle.classList.toggle('on', !!meta.reminderOn);
+}
+
+document.getElementById('settingsBtn').addEventListener('click', ()=>{
+  refreshSettingsUI();
+  settingsModal.classList.add('open');
+});
+document.getElementById('closeSettingsBtn').addEventListener('click', ()=>{
+  settingsModal.classList.remove('open');
+});
+settingsModal.addEventListener('click', (e)=>{
+  if(e.target === settingsModal) settingsModal.classList.remove('open');
+});
+reminderToggle.addEventListener('click', async ()=>{
+  const turningOn = !meta.reminderOn;
+  if(turningOn && 'Notification' in window){
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){ return; }
+  }
+  meta.reminderOn = turningOn;
+  saveMeta();
+  refreshSettingsUI();
+});
+reminderTimeInput.addEventListener('change', ()=>{
+  meta.reminderTime = reminderTimeInput.value;
+  saveMeta();
+});
+document.getElementById('testSoundBtn').addEventListener('click', ()=>{
+  unlockAudio();
+  playBeep('media');
+  if(navigator.vibrate) navigator.vibrate(150);
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+function checkReminder(){
+  if(!meta.reminderOn || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const hhmm = now.toTimeString().slice(0,5);
+  const today = todayStr();
+  if(hhmm === meta.reminderTime && meta.lastReminderShown !== today){
+    const pending = tasks.filter(t=>!t.done).length;
+    if(pending > 0){
+      new Notification('Tienes tareas pendientes', {
+        body: `Te quedan ${pending} tarea${pending===1?'':'s'} por hacer hoy.`,
+        icon: 'icon-192.png'
+      });
+    }
+    meta.lastReminderShown = today;
+    saveMeta();
+  }
+}
+setInterval(checkReminder, 30000);
+checkReminder();
+
+const audioPool = {
+  alta: new Audio('alarm-alta.wav'),
+  media: new Audio('alarm-media.wav'),
+  baja: new Audio('alarm-baja.wav')
+};
+Object.values(audioPool).forEach(a => { a.preload = 'auto'; a.playsInline = true; });
+
+let audioUnlocked = false;
+function unlockAudio(){
+  if(audioUnlocked) return;
+  Object.values(audioPool).forEach(a => {
+    a.volume = 0;
+    a.play().then(()=>{ a.pause(); a.currentTime = 0; a.volume = 1; }).catch(()=>{});
+  });
+  audioUnlocked = true;
+}
+['click','touchend'].forEach(ev => {
+  document.addEventListener(ev, unlockAudio, { once: true });
 });
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      if (clientList.length > 0) return clientList[0].focus();
-      return clients.openWindow('./index.html');
-    })
-  );
+const VIBRATE_PATTERNS = {
+  alta:  [200,80,200,80,200,80,400],
+  media: [250,120,250,120,250],
+  baja:  [180,150,180]
+};
+
+function playBeep(prio){
+  const key = audioPool[prio] ? prio : 'media';
+  try{
+    const a = audioPool[key];
+    a.currentTime = 0;
+    a.play().catch(()=>{});
+  }catch(e){}
+  if(navigator.vibrate) navigator.vibrate(VIBRATE_PATTERNS[key] || VIBRATE_PATTERNS.media);
+}
+
+const alarmOverlay = document.getElementById('alarmOverlay');
+let currentAlarmTaskId = null;
+
+function openAlarmOverlay(task){
+  currentAlarmTaskId = task.id;
+  document.getElementById('alarmTaskText').textContent = task.text;
+  document.getElementById('alarmTaskTime').textContent = `Programada a las ${task.alarmTime}`;
+  alarmOverlay.classList.add('open');
+}
+function closeAlarmOverlay(){
+  alarmOverlay.classList.remove('open');
+  currentAlarmTaskId = null;
+}
+document.getElementById('alarmDoneBtn').addEventListener('click', ()=>{
+  if(currentAlarmTaskId){
+    const t = tasks.find(x=>x.id===currentAlarmTaskId);
+    if(t && !t.done) toggleTask(t.id);
+  }
+  closeAlarmOverlay();
 });
+document.getElementById('alarmSnoozeBtn').addEventListener('click', ()=>{
+  if(currentAlarmTaskId){
+    const t = tasks.find(x=>x.id===currentAlarmTaskId);
+    if(t){ t.suppressUntil = Date.now() + 10*60000; saveTasks(); }
+  }
+  closeAlarmOverlay();
+});
+
+const ALARM_INTERVAL_MS = { alta: 60000, media: 300000, baja: 600000 };
+
+function checkAlarms(){
+  const now = Date.now();
+  const nowDate = new Date();
+  let toFire = null;
+  tasks.forEach(t => {
+    if(t.done || !t.alarmTime) return;
+    const [hh, mm] = t.alarmTime.split(':').map(Number);
+    const alarmDate = new Date();
+    alarmDate.setHours(hh, mm, 0, 0);
+    if(nowDate.getTime() < alarmDate.getTime()) return;
+    if(t.suppressUntil && now < t.suppressUntil) return;
+    if(!t.lastAlarmAt || (now - t.lastAlarmAt) >= (ALARM_INTERVAL_MS[t.prio] || ALARM_INTERVAL_MS.media)){
+      t.lastAlarmAt = now;
+      if(!toFire) toFire = t;
+    }
+  });
+  if(toFire){
+    saveTasks();
+    playBeep(toFire.prio);
+    if('Notification' in window && Notification.permission === 'granted'){
+      try{ new Notification('Tarea pendiente', { body: toFire.text, icon: 'icon-192.png' }); }catch(e){}
+    }
+    if(!alarmOverlay.classList.contains('open')) openAlarmOverlay(toFire);
+  }
+}
+setInterval(checkAlarms, 15000);
+checkAlarms();
+
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'block';
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner').style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').style.display = 'none';
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
