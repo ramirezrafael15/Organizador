@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Mis Tareas</title>
+<meta name="description" content="Organizador de tareas diarias" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f1210" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Tareas" />
+<style>
+  :root{
+    --bg: #0f1210;
+    --surface: #171b19;
+    --surface-2: #1f2422;
+    --border: #2a302d;
+    --text: #f2f3f1;
+    --text-secondary: #9aa39d;
+    --text-muted: #6b736e;
+    --accent: #1D9E75;
+    --accent-light: #9FE1CB;
+    --danger: #D85A30;
+    --amber: #EF9F27;
+    --gray: #5F5E5A;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  body {
+    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16px);
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 4px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 5;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .stat-num { font-size: 22px; font-weight: 600; margin: 0; }
+  .stat-label { font-size: 11px; color: var(--text-secondary); margin: 2px 0 0; }
+
+  .add-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .add-box input[type="text"] {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 16px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .add-box input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  .row { display: flex; gap: 8px; }
+  select {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px 8px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  button {
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+  }
+  .add-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #06231a;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+  .add-btn:active { opacity: 0.85; }
+
+  .filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: 999px;
+  }
+  .filter-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #06231a;
+    font-weight: 600;
+  }
+
+  .task {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .task.done { opacity: 0.45; }
+  .checkbox {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--gray);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    background: transparent;
+  }
+  .checkbox.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .checkbox svg { width: 14px; height: 14px; }
+  .task-text {
+    flex: 1;
+    font-size: 15px;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .task.done .task-text { text-decoration: line-through; }
+  .tags { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .cat-Estudios { background: #0C447C33; color: #85B7EB; }
+  .cat-Vilosu { background: #D85A3033; color: #F0997B; }
+  .cat-Cliente { background: #99355633; color: #ED93B1; }
+  .cat-Personal { background: #0F6E5633; color: #5DCAA5; }
+  .prio-alta { background: #A32D2D33; color: #F09595; }
+  .prio-media { background: #85510B33; color: #FAC775; }
+  .prio-baja { background: #44444133; color: #B4B2A9; }
+
+  .del-btn {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 6px;
+    flex-shrink: 0;
+  }
+  .del-btn svg { width: 18px; height: 18px; }
+
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 20px 0 8px;
+  }
+
+  #installBanner {
+    display: none;
+    background: var(--surface-2);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  #installBanner button {
+    background: var(--accent);
+    color: #06231a;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mis tareas</h1>
+  <p class="subtitle" id="todayLabel"></p>
+</header>
+
+<div id="installBanner">
+  Instala esta app en tu pantalla de inicio para acceder rápido.
+  <div><button id="installBtn">Instalar</button></div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="add-box">
+  <input id="taskInput" type="text" placeholder="¿Qué tienes que hacer?" maxlength="120" />
+  <div class="row">
+    <select id="catInput">
+      <option value="Estudios">Estudios</option>
+      <option value="Vilosu">Vilosu</option>
+      <option value="Cliente">Cliente</option>
+      <option value="Personal">Personal</option>
+    </select>
+    <select id="prioInput">
+      <option value="alta">Alta</option>
+      <option value="media" selected>Media</option>
+      <option value="baja">Baja</option>
+    </select>
+  </div>
+  <button class="add-btn" id="addBtn">+ Añadir tarea</button>
+</div>
+
+<div class="filters" id="filters"></div>
+
+<div id="listWrap"></div>
+
+<footer>Tus tareas se guardan solas en este dispositivo</footer>
+
+<script>
+const STORAGE_KEY = 'mis-tareas-v1';
+let tasks = [];
+let activeFilter = 'todas';
+const CATS = ['Estudios','Vilosu','Cliente','Personal'];
+const PRIO_LABEL = { alta:'Alta', media:'Media', baja:'Baja' };
+const PRIO_ORDER = { alta:0, media:1, baja:2 };
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function loadTasks(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    tasks = raw ? JSON.parse(raw) : [];
+  } catch(e) { tasks = []; }
+}
+
+function saveTasks(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+  catch(e) { console.error('No se pudo guardar', e); }
+}
+
+function addTask(){
+  const input = document.getElementById('taskInput');
+  const cat = document.getElementById('catInput').value;
+  const prio = document.getElementById('prioInput').value;
+  const text = input.value.trim();
+  if(!text) return;
+  tasks.unshift({ id: uid(), text, cat, prio, done:false, created: Date.now() });
+  input.value = '';
+  saveTasks();
+  render();
+  input.focus();
+}
+
+function toggleTask(id){
+  const t = tasks.find(x=>x.id===id);
+  if(t){ t.done = !t.done; saveTasks(); render(); }
+}
+
+function deleteTask(id){
+  tasks = tasks.filter(x=>x.id!==id);
+  saveTasks();
+  render();
+}
+
+function setFilter(f){ activeFilter = f; render(); }
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderFilters(){
+  const el = document.getElementById('filters');
+  const opts = ['todas', ...CATS];
+  el.innerHTML = opts.map(o => {
+    const active = o === activeFilter ? 'active' : '';
+    const label = o === 'todas' ? 'Todas' : o;
+    return `<button class="filter-chip ${active}" data-filter="${o}">${label}</button>`;
+  }).join('');
+  el.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=> setFilter(b.dataset.filter));
+  });
+}
+
+function renderStats(){
+  const el = document.getElementById('stats');
+  const pending = tasks.filter(t=>!t.done).length;
+  const done = tasks.filter(t=>t.done).length;
+  const alta = tasks.filter(t=>!t.done && t.prio==='alta').length;
+  const cards = [
+    { label:'Pendientes', value: pending },
+    { label:'Hechas', value: done },
+    { label:'Prioridad alta', value: alta },
+  ];
+  el.innerHTML = cards.map(c => `
+    <div class="stat-card">
+      <p class="stat-num">${c.value}</p>
+      <p class="stat-label">${c.label}</p>
+    </div>
+  `).join('');
+}
+
+function renderList(){
+  const el = document.getElementById('listWrap');
+  let visible = tasks;
+  if(activeFilter !== 'todas') visible = tasks.filter(t=>t.cat===activeFilter);
+  visible = [...visible].sort((a,b)=>{
+    if(a.done !== b.done) return a.done ? 1 : -1;
+    return PRIO_ORDER[a.prio] - PRIO_ORDER[b.prio];
+  });
+
+  if(visible.length === 0){
+    el.innerHTML = `<div class="empty">No hay tareas aquí.<br>Añade una arriba ↑</div>`;
+    return;
+  }
+
+  el.innerHTML = visible.map(t => `
+    <div class="task ${t.done ? 'done' : ''}">
+      <button class="checkbox ${t.done ? 'checked' : ''}" data-toggle="${t.id}" aria-label="Marcar completada">
+        ${t.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="#06231a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+      </button>
+      <span class="task-text">${escapeHtml(t.text)}</span>
+      <div class="tags">
+        <span class="tag cat-${t.cat}">${t.cat}</span>
+        <span class="tag prio-${t.prio}">${PRIO_LABEL[t.prio]}</span>
+      </div>
+      <button class="del-btn" data-delete="${t.id}" aria-label="Eliminar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('[data-toggle]').forEach(b=>{
+    b.addEventListener('click', ()=> toggleTask(b.dataset.toggle));
+  });
+  el.querySelectorAll('[data-delete]').forEach(b=>{
+    b.addEventListener('click', ()=> deleteTask(b.dataset.delete));
+  });
+}
+
+function render(){
+  renderFilters();
+  renderStats();
+  renderList();
+}
+
+document.getElementById('addBtn').addEventListener('click', addTask);
+document.getElementById('taskInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') addTask();
+});
+
+const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const today = new Date();
+document.getElementById('todayLabel').textContent =
+  `${dias[today.getDay()]}, ${today.getDate()} de ${meses[today.getMonth()]}`;
+
+loadTasks();
+render();
+
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'block';
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner').style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').style.display = 'none';
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
