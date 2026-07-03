@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tareas-v1';
+const CACHE_NAME = 'tareas-v3';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -20,5 +20,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      if (clientList.length > 0) return clientList[0].focus();
+      return clients.openWindow('./index.html');
+    })
   );
 });
