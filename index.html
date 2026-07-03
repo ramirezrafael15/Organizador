@@ -48,15 +48,45 @@
     top: 0;
     background: var(--bg);
     z-index: 5;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
   }
   h1 { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
   .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
+  .icon-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .icon-btn svg { width: 20px; height: 20px; }
+
+  .streak {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--amber);
+    width: fit-content;
+    margin-bottom: 14px;
+  }
+  .streak svg { width: 16px; height: 16px; }
 
   .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    margin: 16px 0;
+    margin-bottom: 16px;
   }
   .stat-card {
     background: var(--surface);
@@ -87,7 +117,8 @@
   }
   .add-box input[type="text"]:focus { outline: none; border-color: var(--accent); }
   .row { display: flex; gap: 8px; }
-  select {
+  .row + .row { margin-top: 8px; }
+  select, .row input[type="time"] {
     flex: 1;
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -164,14 +195,24 @@
     border-color: var(--accent);
   }
   .checkbox svg { width: 14px; height: 14px; }
+  .task-body { flex: 1; min-width: 0; }
   .task-text {
-    flex: 1;
     font-size: 15px;
     line-height: 1.3;
     word-break: break-word;
+    display: block;
   }
   .task.done .task-text { text-decoration: line-through; }
-  .tags { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+  .repeat-hint {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .repeat-hint svg { width: 11px; height: 11px; }
+  .tags { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
   .tag {
     font-size: 10px;
     font-weight: 600;
@@ -228,18 +269,94 @@
     border-radius: 8px;
     margin-top: 8px;
   }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 20;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    background: var(--surface);
+    border-radius: 18px 18px 0 0;
+    padding: 20px;
+    width: 100%;
+    max-width: 480px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
+  }
+  .modal-sheet h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+  .modal-sheet p.hint { font-size: 12px; color: var(--text-muted); margin: 0 0 16px; line-height:1.5; }
+  .modal-sheet label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
+  .modal-sheet input[type="time"] {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 16px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+  }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+    border-top: 0.5px solid var(--border);
+  }
+  .toggle-row span { font-size: 14px; }
+  .switch {
+    width: 44px; height: 26px;
+    background: var(--gray);
+    border-radius: 999px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .switch.on { background: var(--accent); }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 22px; height: 22px;
+    background: white;
+    border-radius: 50%;
+    transition: left 0.15s;
+  }
+  .switch.on::after { left: 20px; }
+  .modal-close-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #06231a;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 16px;
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Mis tareas</h1>
-  <p class="subtitle" id="todayLabel"></p>
+  <div>
+    <h1>Mis tareas</h1>
+    <p class="subtitle" id="todayLabel"></p>
+  </div>
+  <button class="icon-btn" id="settingsBtn" aria-label="Recordatorios">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+  </button>
 </header>
 
 <div id="installBanner">
   Instala esta app en tu pantalla de inicio para acceder rápido.
   <div><button id="installBtn">Instalar</button></div>
+</div>
+
+<div class="streak" id="streakBox" style="display:none;">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-1 4-2 6-1.5 3 0 5 2 5s3.5-2 2-5c2 1 3 3 3 5a5 5 0 0 1-10 0c0-4 3-6 5-11z"></path></svg>
+  <span id="streakText">0 días seguidos</span>
 </div>
 
 <div class="stats" id="stats"></div>
@@ -259,6 +376,15 @@
       <option value="baja">Baja</option>
     </select>
   </div>
+  <div class="row">
+    <select id="repeatInput">
+      <option value="none">No se repite</option>
+      <option value="daily">Cada día</option>
+      <option value="weekly">Cada semana</option>
+    </select>
+    <input type="time" id="alarmInput" style="flex:1;" />
+  </div>
+  <p style="font-size:11px; color:var(--text-muted); margin:6px 2px 0;">Pon una hora y sonará cada 2 min hasta que la marques hecha (con la app abierta)</p>
   <button class="add-btn" id="addBtn">+ Añadir tarea</button>
 </div>
 
@@ -268,44 +394,125 @@
 
 <footer>Tus tareas se guardan solas en este dispositivo</footer>
 
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-sheet">
+    <h2>Recordatorio diario</h2>
+    <p class="hint">Te avisa a esta hora si tienes tareas pendientes. Solo funciona si el navegador tiene permiso y la app se ha abierto ese día — en iPhone es más limitado que en Android.</p>
+    <label for="reminderTime">Hora del aviso</label>
+    <input type="time" id="reminderTime" value="09:00" />
+    <div class="toggle-row">
+      <span>Activar recordatorio</span>
+      <button class="switch" id="reminderToggle" aria-label="Activar recordatorio"></button>
+    </div>
+    <button class="modal-close-btn" id="closeSettingsBtn">Guardar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="alarmOverlay">
+  <div class="modal-sheet" style="text-align:center;">
+    <div style="width:56px; height:56px; border-radius:50%; background:var(--bg-danger, #A32D2D33); display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:28px; height:28px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+    </div>
+    <h2 id="alarmTaskText">Tarea pendiente</h2>
+    <p class="hint" id="alarmTaskTime">Sonará cada 2 min hasta que la marques hecha</p>
+    <button class="modal-close-btn" id="alarmDoneBtn">Ya está hecho</button>
+    <button class="icon-btn" id="alarmSnoozeBtn" style="width:100%; margin-top:10px; height:44px; font-size:13px; color:var(--text-secondary);">Silenciar 10 min</button>
+  </div>
+</div>
+
 <script>
 const STORAGE_KEY = 'mis-tareas-v1';
+const META_KEY = 'mis-tareas-meta-v1';
 let tasks = [];
+let meta = { streak: 0, lastCompletedDate: null, reminderTime: '09:00', reminderOn: false, lastReminderShown: null };
 let activeFilter = 'todas';
 const CATS = ['Estudios','Vilosu','Cliente','Personal'];
 const PRIO_LABEL = { alta:'Alta', media:'Media', baja:'Baja' };
 const PRIO_ORDER = { alta:0, media:1, baja:2 };
+const REPEAT_LABEL = { daily: 'Cada día', weekly: 'Cada semana' };
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ const d = new Date(); return d.toISOString().slice(0,10); }
+function daysBetween(a, b){
+  const d1 = new Date(a); const d2 = new Date(b);
+  return Math.round((d2 - d1) / 86400000);
+}
 
-function loadTasks(){
+function loadData(){
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     tasks = raw ? JSON.parse(raw) : [];
   } catch(e) { tasks = []; }
+  try {
+    const rawMeta = localStorage.getItem(META_KEY);
+    if(rawMeta) meta = Object.assign(meta, JSON.parse(rawMeta));
+  } catch(e) {}
 }
 
 function saveTasks(){
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
   catch(e) { console.error('No se pudo guardar', e); }
 }
+function saveMeta(){
+  try { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+  catch(e) {}
+}
+
+function resetRecurringTasks(){
+  const today = todayStr();
+  let changed = false;
+  tasks.forEach(t => {
+    if(t.repeat && t.repeat !== 'none' && t.done){
+      const last = t.lastDoneDate;
+      if(!last) return;
+      if(t.repeat === 'daily' && last !== today){
+        t.done = false; changed = true;
+      } else if(t.repeat === 'weekly' && daysBetween(last, today) >= 7){
+        t.done = false; changed = true;
+      }
+    }
+  });
+  if(changed) saveTasks();
+}
+
+function updateStreak(){
+  const today = todayStr();
+  if(meta.lastCompletedDate === today) return;
+  if(meta.lastCompletedDate && daysBetween(meta.lastCompletedDate, today) === 1){
+    meta.streak += 1;
+  } else {
+    meta.streak = 1;
+  }
+  meta.lastCompletedDate = today;
+  saveMeta();
+}
 
 function addTask(){
   const input = document.getElementById('taskInput');
   const cat = document.getElementById('catInput').value;
   const prio = document.getElementById('prioInput').value;
+  const repeat = document.getElementById('repeatInput').value;
+  const alarmInputEl = document.getElementById('alarmInput');
+  const alarmTime = alarmInputEl.value || null;
   const text = input.value.trim();
   if(!text) return;
-  tasks.unshift({ id: uid(), text, cat, prio, done:false, created: Date.now() });
+  tasks.unshift({ id: uid(), text, cat, prio, repeat, alarmTime, done:false, created: Date.now(), lastDoneDate: null, lastAlarmAt: null, suppressUntil: null });
   input.value = '';
+  alarmInputEl.value = '';
   saveTasks();
   render();
-  input.focus();
 }
 
 function toggleTask(id){
   const t = tasks.find(x=>x.id===id);
-  if(t){ t.done = !t.done; saveTasks(); render(); }
+  if(!t) return;
+  t.done = !t.done;
+  if(t.done){
+    t.lastDoneDate = todayStr();
+    updateStreak();
+  }
+  saveTasks();
+  render();
 }
 
 function deleteTask(id){
@@ -333,6 +540,17 @@ function renderFilters(){
   el.querySelectorAll('button').forEach(b=>{
     b.addEventListener('click', ()=> setFilter(b.dataset.filter));
   });
+}
+
+function renderStreak(){
+  const box = document.getElementById('streakBox');
+  if(meta.streak > 0){
+    box.style.display = 'flex';
+    document.getElementById('streakText').textContent =
+      `${meta.streak} día${meta.streak === 1 ? '' : 's'} seguido${meta.streak === 1 ? '' : 's'}`;
+  } else {
+    box.style.display = 'none';
+  }
 }
 
 function renderStats(){
@@ -372,7 +590,13 @@ function renderList(){
       <button class="checkbox ${t.done ? 'checked' : ''}" data-toggle="${t.id}" aria-label="Marcar completada">
         ${t.done ? '<svg viewBox="0 0 24 24" fill="none" stroke="#06231a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
       </button>
-      <span class="task-text">${escapeHtml(t.text)}</span>
+      <div class="task-body">
+        <span class="task-text">${escapeHtml(t.text)}</span>
+        ${(t.repeat && t.repeat !== 'none') || t.alarmTime ? `<span class="repeat-hint">
+          ${t.repeat && t.repeat !== 'none' ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>${REPEAT_LABEL[t.repeat]}` : ''}
+          ${t.alarmTime ? `<svg style="margin-left:${t.repeat && t.repeat!=='none' ? '8px':'0'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${t.alarmTime}` : ''}
+        </span>` : ''}
+      </div>
       <div class="tags">
         <span class="tag cat-${t.cat}">${t.cat}</span>
         <span class="tag prio-${t.prio}">${PRIO_LABEL[t.prio]}</span>
@@ -393,6 +617,7 @@ function renderList(){
 
 function render(){
   renderFilters();
+  renderStreak();
   renderStats();
   renderList();
 }
@@ -408,8 +633,144 @@ const today = new Date();
 document.getElementById('todayLabel').textContent =
   `${dias[today.getDay()]}, ${today.getDate()} de ${meses[today.getMonth()]}`;
 
-loadTasks();
+loadData();
+resetRecurringTasks();
 render();
+
+// Settings modal
+const settingsModal = document.getElementById('settingsModal');
+const reminderToggle = document.getElementById('reminderToggle');
+const reminderTimeInput = document.getElementById('reminderTime');
+
+function refreshSettingsUI(){
+  reminderTimeInput.value = meta.reminderTime || '09:00';
+  reminderToggle.classList.toggle('on', !!meta.reminderOn);
+}
+
+document.getElementById('settingsBtn').addEventListener('click', ()=>{
+  refreshSettingsUI();
+  settingsModal.classList.add('open');
+});
+document.getElementById('closeSettingsBtn').addEventListener('click', ()=>{
+  settingsModal.classList.remove('open');
+});
+settingsModal.addEventListener('click', (e)=>{
+  if(e.target === settingsModal) settingsModal.classList.remove('open');
+});
+reminderToggle.addEventListener('click', async ()=>{
+  const turningOn = !meta.reminderOn;
+  if(turningOn && 'Notification' in window){
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){ return; }
+  }
+  meta.reminderOn = turningOn;
+  saveMeta();
+  refreshSettingsUI();
+});
+reminderTimeInput.addEventListener('change', ()=>{
+  meta.reminderTime = reminderTimeInput.value;
+  saveMeta();
+});
+
+function checkReminder(){
+  if(!meta.reminderOn || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const hhmm = now.toTimeString().slice(0,5);
+  const today = todayStr();
+  if(hhmm === meta.reminderTime && meta.lastReminderShown !== today){
+    const pending = tasks.filter(t=>!t.done).length;
+    if(pending > 0){
+      new Notification('Tienes tareas pendientes', {
+        body: `Te quedan ${pending} tarea${pending===1?'':'s'} por hacer hoy.`,
+        icon: 'icon-192.png'
+      });
+    }
+    meta.lastReminderShown = today;
+    saveMeta();
+  }
+}
+setInterval(checkReminder, 30000);
+checkReminder();
+
+// Alarmas por tarea (cada 2 min hasta marcar hecha, con la app abierta)
+let audioCtx = null;
+function playBeep(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const times = [0, 0.35, 0.7];
+    times.forEach(t => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t + 0.28);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + t);
+      osc.stop(audioCtx.currentTime + t + 0.3);
+    });
+  }catch(e){}
+  if(navigator.vibrate) navigator.vibrate([250,120,250,120,250]);
+}
+
+const alarmOverlay = document.getElementById('alarmOverlay');
+let currentAlarmTaskId = null;
+
+function openAlarmOverlay(task){
+  currentAlarmTaskId = task.id;
+  document.getElementById('alarmTaskText').textContent = task.text;
+  document.getElementById('alarmTaskTime').textContent = `Programada a las ${task.alarmTime}`;
+  alarmOverlay.classList.add('open');
+}
+function closeAlarmOverlay(){
+  alarmOverlay.classList.remove('open');
+  currentAlarmTaskId = null;
+}
+document.getElementById('alarmDoneBtn').addEventListener('click', ()=>{
+  if(currentAlarmTaskId){
+    const t = tasks.find(x=>x.id===currentAlarmTaskId);
+    if(t && !t.done) toggleTask(t.id);
+  }
+  closeAlarmOverlay();
+});
+document.getElementById('alarmSnoozeBtn').addEventListener('click', ()=>{
+  if(currentAlarmTaskId){
+    const t = tasks.find(x=>x.id===currentAlarmTaskId);
+    if(t){ t.suppressUntil = Date.now() + 10*60000; saveTasks(); }
+  }
+  closeAlarmOverlay();
+});
+
+function checkAlarms(){
+  const now = Date.now();
+  const nowDate = new Date();
+  let toFire = null;
+  tasks.forEach(t => {
+    if(t.done || !t.alarmTime) return;
+    const [hh, mm] = t.alarmTime.split(':').map(Number);
+    const alarmDate = new Date();
+    alarmDate.setHours(hh, mm, 0, 0);
+    if(nowDate.getTime() < alarmDate.getTime()) return;
+    if(t.suppressUntil && now < t.suppressUntil) return;
+    if(!t.lastAlarmAt || (now - t.lastAlarmAt) >= 120000){
+      t.lastAlarmAt = now;
+      if(!toFire) toFire = t;
+    }
+  });
+  if(toFire){
+    saveTasks();
+    playBeep();
+    if('Notification' in window && Notification.permission === 'granted'){
+      try{ new Notification('Tarea pendiente', { body: toFire.text, icon: 'icon-192.png' }); }catch(e){}
+    }
+    if(!alarmOverlay.classList.contains('open')) openAlarmOverlay(toFire);
+  }
+}
+setInterval(checkAlarms, 15000);
+checkAlarms();
 
 // PWA install prompt
 let deferredPrompt;
